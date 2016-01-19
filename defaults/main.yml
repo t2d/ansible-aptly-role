@@ -1,5 +1,24 @@
 aptly_version: 0.9.5
 aptly_user: aptly
+aptly_root: /var/lib/aptly/.aptly
 aptly_virtualhost: repository.local
 aptly_secret_key_path: secrets/aptly
 aptly_secret_key_file: private.key
+aptly_keyserver: keys.gnupg.net
+aptly_mirror_keys:
+ - 437D05B5
+ - C0B21F32
+aptly_mirrors:
+ - name: "trusty-main"
+   url: "http://de.archive.ubuntu.com/ubuntu/"
+   component: "trusty main"
+ - name: "trusty-updates"
+   url: "http://de.archive.ubuntu.com/ubuntu/"
+   component: "trusty-updates main"
+ - name: "trusty-security"
+   url: "http://de.archive.ubuntu.com/ubuntu/"
+   component: "trusty-security main"
+ - name: "trusty-backports"
+   url: "http://de.archive.ubuntu.com/ubuntu/"
+   component: "trusty-backports main"
+

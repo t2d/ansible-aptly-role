@@ -1,38 +1,52 @@
+---
+-  name: Creating user repo
+   user:
+     name: "{{ aptly_user }}"
+     shell: /bin/nologin
+
+- name: Install aptly debian repository
+  apt_repository:
+    repo: 'deb http://repo.aptly.info/ squeeze main'
+    state: present
+    update_cache: yes
+
+- name: Import aptly key
+  apt_key:
+    id: 2A194991
+    keyserver: "{{ aptly_keyserver }}"
+
 -
-    name: Creating user repo
-    user: name={{ aptly_user }} shell=/bin/false
-    sudo: yes
--
-    name: Install aptly debian repository
-    apt_repository: repo='deb http://repo.aptly.info/ squeeze main' state=present update_cache=yes
-    sudo: yes
--
-    name: Import aptly key
-    apt_key: id=2A194991 keyserver=keys.gnupg.net state=present
-    sudo: yes
--
-    name: Install GPG and nginx
+    name: Install aptly and gpg
     apt: name={{ item }} state=present update_cache=yes
     with_items:
         - aptly={{ aptly_version }}
         - gnupg
-        - nginx
-    sudo: yes
+
+- name: Copy config file
+  template:
+    src: aptly.conf.j2
+    dest: /etc/aptly.conf
+    owner: root
+    group: root
+    mode: 0644
+
 -
     name: Upload repository key
-    copy: src="{{ aptly_secret_key_path }}/{{ aptly_secret_key_file }}" dest=/tmp owner={{ aptly_user }} group={{ aptly_user }} mode=0400
-    sudo: yes
+    copy:
+        src: "{{ aptly_secret_key_path }}/{{ aptly_secret_key_file }}"
+        dest: /tmp
+        owner: "{{ aptly_user }}"
+        group: "{{ aptly_user }}"
+        mode: 0400
 -
     name: Import repository key to gnupg
     shell: >
         ( gpg --list-secret-keys | grep -q "{{ aptly_secret_key_id }}" )
         || gpg --allow-secret-key-import --import /tmp/{{ aptly_secret_key_file }}
-    sudo: yes
-    sudo_user: "{{ aptly_user }}"
+
 -
-    name: Remove secret key from repote host
+    name: Remove secret key from remote host
     file: path="/tmp/{{ aptly_secret_key_file }}" state=absent
-    sudo: yes
 -
     name: Create repositories
     shell: >
@@ -44,8 +58,6 @@
                 --component "{{ item.component|default('main') }}" \
                 "{{ item.name }}"
         )
-    sudo: yes
-    sudo_user: "{{ aptly_user }}"
     with_items: aptly_repositories
     when: aptly_repositories is defined
 -
@@ -55,8 +67,6 @@
 -
     name: Import dummy package to repository
     command: aptly repo add {{ item.name }} /tmp/dummy_0.1_all.deb
-    sudo: yes
-    sudo_user: "{{ aptly_user }}"
     with_items: aptly_repositories
     when: aptly_repositories is defined
 -
@@ -68,21 +78,26 @@
             --architectures "{{ item.architectures|default('amd64,i386') }}" \
             "{{ item.name }}" \
             "{{ item.prefix|default(item.name) }}"
-    sudo: yes
-    sudo_user: "{{ aptly_user }}"
     with_items: aptly_repositories
     when: aptly_repositories is defined
--
-    name: remove nginx 'it works' page
-    file: path=/etc/nginx/sites-enabled/default state=absent
-    sudo: yes
--
-    name: Upload nginx configuration file
-    template: src=nginx-aptly.conf.j2 dest=/etc/nginx/sites-available/aptly.conf owner=root group=root mode=644
-    notify: restart nginx
-    sudo: yes
--
-    name: Creating nginx configuration symlinks
-    file: src=/etc/nginx/sites-available/aptly.conf dest=/etc/nginx/sites-enabled/aptly.conf state=link
-    notify: restart nginx
-    sudo: yes
+
+- name: Import keys of mirrored repos
+  command: gpg --no-default-keyring --keyring trustedkeys.gpg --keyserver {{ aptly_keyserver }} --recv-keys {{ item }}
+  with_items: aptly_mirror_keys 
+
+- name: Create mirrors
+  command: "aptly mirror create -architectures=amd64 -filter='{{ aptly_filter | join (\" | \") }}' {{ item.name }} {{ item.url }} {{ item.component }}"
+  with_items: aptly_mirrors
+  failed_when: False
+
+- name: Update mirrors
+  command: aptly mirror update {{ item.name }}
+  with_items: aptly_mirrors
+
+- name: Copy daily cronjob
+  template:
+    src: cron.j2
+    dest: /etc/cron.daily/aptly
+    owner: root
+    group: root
+    mode: 0700
