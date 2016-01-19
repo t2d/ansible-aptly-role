@@ -1,7 +1,7 @@
 Aptly
 ========
 
-Aptly is a brilliant software for creating both your own Debian repositories and official repository mirrors with git-like snapshot management. This role helps you to install aptly and setup your own repository with nginx as web server.
+Aptly is a brilliant software for creating both your own Debian repositories and official repository mirrors with git-like snapshot management. This role helps you to install aptly and setup your own repository with nginx or apache2 as web server.
 
 
 Notes

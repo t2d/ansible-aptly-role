@@ -12,7 +12,7 @@
 
 - name: Import aptly key
   apt_key:
-    id: 9E3E53F19C7DE460
+    id: 2A194991
     keyserver: "{{ aptly_keyserver }}"
 
 - name: Install necessary packages
