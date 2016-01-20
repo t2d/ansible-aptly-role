@@ -81,6 +81,36 @@
             "{{ item.prefix|default(item.name) }}"
     with_items: aptly_repositories
     when: aptly_repositories is defined
+-
+    name: remove nginx 'it works' page
+    file: path=/etc/nginx/sites-enabled/default state=absent
+    when: aptly_webserver == "nginx"
+-
+    name: Upload nginx configuration file
+    template: src=nginx-aptly.conf.j2 dest=/etc/nginx/sites-available/aptly.conf owner=root group=root mode=644
+    notify: restart nginx
+    when: aptly_webserver == "nginx"
+-
+    name: Creating nginx configuration symlinks
+    file: src=/etc/nginx/sites-available/aptly.conf dest=/etc/nginx/sites-enabled/aptly.conf state=link
+    notify: restart nginx
+    when: aptly_webserver == "nginx"
+
+- name: Copy apache config
+  template:
+    src: apache.j2
+    dest: /etc/apache2/sites-available/aptly.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: aptly_webserver == "apache2"
+
+- name: Enable apache vhost
+  command: a2ensite aptly.conf
+  args:
+    creates: /etc/apache2/sites-enabled/aptly.conf
+  notify: restart apache2
+  when: aptly_webserver == "apache2"
 
 - name: Import keys of mirrored repos
   command: gpg --no-default-keyring --keyring trustedkeys.gpg --keyserver {{ aptly_keyserver }} --recv-keys {{ item }}
@@ -102,20 +132,3 @@
     owner: root
     group: root
     mode: 0700
-
-- name: Copy apache config
-  template:
-    src: apache.j2
-    dest: /etc/apache2/sites-available/aptly.conf
-    owner: root
-    group: root
-    mode: 0644
-  when: aptly_webserver == "apache2"
-
-- name: Enable apache vhost
-  command: a2ensite aptly.conf
-  args:
-    creates: /etc/apache2/sites-enabled/aptly.conf
-  notify: restart apache2
-  when: aptly_webserver == "apache2"
-
