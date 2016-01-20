@@ -16,11 +16,12 @@
     keyserver: "{{ aptly_keyserver }}"
 
 -
-    name: Install aptly and gpg
+    name: Install necesarry packages
     apt: name={{ item }} state=present update_cache=yes
     with_items:
         - aptly={{ aptly_version }}
         - gnupg
+        - "{{ aptly_webserver }}"
 
 - name: Copy config file
   template:
@@ -101,3 +102,20 @@
     owner: root
     group: root
     mode: 0700
+
+- name: Copy apache config
+  template:
+    src: apache.j2
+    dest: /etc/apache2/sites-available/aptly.conf
+    owner: root
+    group: root
+    mode: 0644
+  when: aptly_webserver == "apache2"
+
+- name: Enable apache vhost
+  command: a2ensite aptly.conf
+  args:
+    creates: /etc/apache2/sites-enabled/aptly.conf
+  notify: restart apache2
+  when: aptly_webserver == "apache2"
+

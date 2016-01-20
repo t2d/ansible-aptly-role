@@ -2,6 +2,7 @@ aptly_version: 0.9.5
 aptly_user: aptly
 aptly_root: /var/lib/aptly/.aptly
 aptly_virtualhost: repository.local
+aptly_admin: admin@localhost
 aptly_secret_key_path: secrets/aptly
 aptly_secret_key_file: private.key
 aptly_keyserver: keys.gnupg.net
@@ -21,4 +22,4 @@ aptly_mirrors:
  - name: "trusty-backports"
    url: "http://de.archive.ubuntu.com/ubuntu/"
    component: "trusty-backports main"
-
+aptly_webserver: apache2
