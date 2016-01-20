@@ -22,4 +22,8 @@ aptly_mirrors:
  - name: "trusty-backports"
    url: "http://de.archive.ubuntu.com/ubuntu/"
    component: "trusty-backports main"
+aptly_filter:
+ - Priority (required)
+ - Priority (important)
+ - Priority (standard)
 aptly_webserver: apache2
