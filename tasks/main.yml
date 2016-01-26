@@ -89,6 +89,12 @@
             "{{ item.prefix|default(item.name) }}"
     with_items: aptly_repositories
     when: aptly_repositories is defined
+
+- name: Update published repos
+  command: aptly publish update {{ item.distribution }} {{ item.name }}
+  with_items: aptly_repositories
+  when: aptly_repositories is defined
+
 -
     name: remove nginx 'it works' page
     file: path=/etc/nginx/sites-enabled/default state=absent
