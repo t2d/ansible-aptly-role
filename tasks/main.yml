@@ -15,13 +15,12 @@
     id: 2A194991
     keyserver: "{{ aptly_keyserver }}"
 
--
-    name: Install necessary packages
-    apt: name={{ item }} state=present update_cache=yes
-    with_items:
-        - aptly={{ aptly_version }}
-        - gnupg
-        - "{{ aptly_webserver }}"
+- name: Install necessary packages
+  apt: name={{ item }} state=present update_cache=yes
+  with_items:
+      - aptly={{ aptly_version }}
+      - gnupg
+      - "{{ aptly_webserver }}"
 
 - name: Copy config file
   template:
@@ -31,21 +30,24 @@
     group: root
     mode: 0644
 
--
-    name: Upload repository key
-    copy:
-        src: "{{ aptly_secret_key_path }}/{{ aptly_secret_key_file }}"
-        dest: /tmp
-        owner: "{{ aptly_user }}"
-        group: "{{ aptly_user }}"
-        mode: 0400
-    when: aptly_secret_key_id is defined
--
-    name: Import repository key to gnupg
-    shell: >
-        ( gpg --list-secret-keys | grep -q "{{ aptly_secret_key_id }}" )
-        || gpg --allow-secret-key-import --import /tmp/{{ aptly_secret_key_file }}
-    when: aptly_secret_key_id is defined
+- name: Check if key is already present
+  command: gpg --list-secret-keys | grep -q "{{ aptly_secret_key_id }}"
+  register: key_present
+  changed_when: False
+  failed_when: False
+
+- name: Upload repository key
+  copy:
+      src: "{{ aptly_secret_key_path }}/{{ aptly_secret_key_file }}"
+      dest: /tmp
+      owner: "{{ aptly_user }}"
+      group: "{{ aptly_user }}"
+      mode: 0400
+  when: aptly_secret_key_id is defined and key_present.rc != 0
+
+- name: Import repository key to gnupg
+  shell: gpg --allow-secret-key-import --import /tmp/{{ aptly_secret_key_file }}
+  when: aptly_secret_key_id is defined and key_present.rc != 0
 
 -
     name: Remove secret key from remote host
@@ -64,16 +66,18 @@
         )
     with_items: aptly_repositories
     when: aptly_repositories is defined
--
-    name: Upload dummy package
-    copy: src=dummy_0.1_all.deb dest=/tmp/
-    sudo: yes
-    when: aptly_repositories is defined
--
-    name: Import dummy package to repository
-    command: aptly repo add {{ item.name }} /tmp/dummy_0.1_all.deb
-    with_items: aptly_repositories
-    when: aptly_repositories is defined
+
+- name: Ensure import dir is present
+  file:
+    path: "{{ aptly_import_dir }}"
+    state: directory
+  when: aptly_repositories is defined
+
+- name: Import packages to repository
+  command: aptly repo add {{ item.name }} {{ aptly_import_dir }}
+  with_items: aptly_repositories
+  when: aptly_repositories is defined
+
 -
     name: Publish repositories
     shell: >
