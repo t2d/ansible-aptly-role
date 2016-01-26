@@ -32,6 +32,7 @@
 
 - name: Check if key is already present
   command: gpg --list-secret-keys | grep -q "{{ aptly_secret_key_id }}"
+  when: aptly_secret_key_id is defined
   register: key_present
   changed_when: False
   failed_when: False
