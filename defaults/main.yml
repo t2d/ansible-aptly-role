@@ -1,4 +1,4 @@
-aptly_version: 0.9.5
+aptly_version: 0.9.7
 aptly_user: aptly
 aptly_root: /var/lib/aptly/.aptly
 aptly_import_dir: /tmp/aptly_import
