@@ -1,5 +1,6 @@
-Aptly
+Aptly 
 ========
+[![Build Status](https://travis-ci.org/t2d/ansible-aptly-role.svg?branch=master)](https://travis-ci.org/t2d/ansible-aptly-role)
 
 Aptly is a brilliant software for creating both your own Debian repositories and official repository mirrors with git-like snapshot management. This role helps you to install aptly and setup your own repository with nginx or apache2 as web server.
 
