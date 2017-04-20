@@ -1,8 +1,8 @@
 ---
--  name: Creating user repo
-   user:
-     name: "{{ aptly_user }}"
-     shell: /bin/nologin
+- name: Creating user repo
+  user:
+    name: "{{ aptly_user }}"
+    shell: /bin/nologin
 
 - name: Install aptly debian repository
   apt_repository:
@@ -16,11 +16,14 @@
     keyserver: "{{ aptly_keyserver }}"
 
 - name: Install necessary packages
-  apt: name={{ item }} state=present update_cache=yes
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: yes
   with_items:
-      - aptly={{ aptly_version }}
-      - gnupg
-      - "{{ aptly_webserver }}"
+    - aptly={{ aptly_version }}
+    - gnupg
+    - "{{ aptly_webserver }}"
 
 - name: Copy config file
   template:
@@ -39,11 +42,11 @@
 
 - name: Upload repository key
   copy:
-      src: "{{ aptly_secret_key_path }}/{{ aptly_secret_key_file }}"
-      dest: /tmp
-      owner: "{{ aptly_user }}"
-      group: "{{ aptly_user }}"
-      mode: 0400
+    src: "{{ aptly_secret_key_path }}/{{ aptly_secret_key_file }}"
+    dest: /tmp
+    owner: "{{ aptly_user }}"
+    group: "{{ aptly_user }}"
+    mode: 0400
   when: aptly_secret_key_id is defined and key_present.rc != 0
 
 - name: Import repository key to gnupg
@@ -58,14 +61,14 @@
 
 - name: Create repositories
   shell: >
-      (aptly repo list -raw | grep -q "{{ item.name }}" )
-      || (
-          aptly repo create \
-              --comment "{{ item.comment|default('\"\"') }}" \
-              --distribution "{{ item.distribution|default('main') }}" \
-              --component "{{ item.component|default('main') }}" \
-              "{{ item.name }}"
-      )
+    (aptly repo list -raw | grep -q "{{ item.name }}" )
+    || (
+      aptly repo create \
+        --comment "{{ item.comment|default('\"\"') }}" \
+        --distribution "{{ item.distribution|default('main') }}" \
+        --component "{{ item.component|default('main') }}" \
+        "{{ item.name }}"
+    )
   with_items: "{{ aptly_repositories }}"
   when: aptly_repositories is defined
 
@@ -80,37 +83,45 @@
   with_items: "{{ aptly_repositories }}"
   when: aptly_repositories is defined
 
--
-    name: Publish repositories
-    shell: >
-        (aptly publish list | grep -q "{{ item.name }}")
-        || aptly publish repo \
-            --gpg-key "{{ aptly_secret_key_id }}" \
-            --architectures "{{ item.architectures|default('amd64,i386') }}" \
-            "{{ item.name }}" \
-            "{{ item.prefix|default(item.name) }}"
-    with_items: "{{ aptly_repositories }}"
-    when: aptly_repositories is defined
+- name: Publish repositories
+  shell: >
+    (aptly publish list | grep -q "{{ item.name }}")
+    || aptly publish repo \
+      --gpg-key "{{ aptly_secret_key_id }}" \
+      --architectures "{{ item.architectures|default('amd64,i386') }}" \
+      "{{ item.name }}" \
+      "{{ item.prefix|default(item.name) }}"
+  with_items: "{{ aptly_repositories }}"
+  when: aptly_repositories is defined
 
 - name: Update published repos
   command: aptly publish update {{ item.distribution }} {{ item.name }}
   with_items: "{{ aptly_repositories }}"
   when: aptly_repositories is defined
 
--
-    name: remove nginx 'it works' page
-    file: path=/etc/nginx/sites-enabled/default state=absent
-    when: aptly_webserver == "nginx"
--
-    name: Upload nginx configuration file
-    template: src=nginx-aptly.conf.j2 dest=/etc/nginx/sites-available/aptly.conf owner=root group=root mode=644
-    notify: restart nginx
-    when: aptly_webserver == "nginx"
--
-    name: Creating nginx configuration symlinks
-    file: src=/etc/nginx/sites-available/aptly.conf dest=/etc/nginx/sites-enabled/aptly.conf state=link
-    notify: restart nginx
-    when: aptly_webserver == "nginx"
+- name: remove nginx 'it works' page
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  when: aptly_webserver == "nginx"
+
+- name: Upload nginx configuration file
+  template:
+    src: nginx-aptly.conf.j2
+    dest: /etc/nginx/sites-available/aptly.conf
+    owner: root
+    group: root
+    mode: 644
+  notify: restart nginx
+  when: aptly_webserver == "nginx"
+
+- name: Creating nginx configuration symlinks
+  file:
+    src: /etc/nginx/sites-available/aptly.conf
+    dest: /etc/nginx/sites-enabled/aptly.conf
+    state: link
+  notify: restart nginx
+  when: aptly_webserver == "nginx"
 
 - name: Copy apache config
   template:
