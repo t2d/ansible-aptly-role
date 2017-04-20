@@ -12,38 +12,8 @@
 
 - name: Import aptly key
   apt_key:
-    data: |
-      -----BEGIN PGP PUBLIC KEY BLOCK-----
-      Version: GnuPG v1
-
-      mQENBFbn0iMBCACqn6Y+NGqRHFjalcqqlvaG9LZMU4iNHPXmpHIelPg0+wgGurF2
-      EnoqwYP4bB7Y7olEhF3IRYntgvWPM3PxHHvX0HfQ2g+28g3uwqjfj5h9p0jTg+bT
-      Qb6IUhUB7yDQy+a7nP+TuRuTAeMnPMyornZaI9Ch/lEUaHpxOchylD0QCgzFqLDj
-      fEE7m+NqZ7ICnLnmCnP29mszv0HnnxbEuCSVipLBsUo1Jp8z0eLlpUUR3skBb1pX
-      aX7jzYHSF2HOSdr9265IymFdJYLK174I9RYhcfOIPjkzh+hk32ojkL5txxd2Ry1y
-      ks3S8bNQI9a9k6AY4h1SeuJz/iEMl5nnnQG1ABEBAAG0HEFuZHJleSBTbWlybm92
-      IDxtZUBzbWlyYS5ydT6JAUEEEwECACsCGwMFCQPCZwAGCwkIBwMCBhUIAgkKCwQW
-      AgMBAh4BAheABQJW59I2AhkBAAoJEJ4+U/GcfeRggu4H/j17j90a+VL7SC9/1eEa
-      k26iJaNDrUb662kJSuOUZuI5xDTujdJXMbIWjNIIsY9akfoLeXmnMFdnraF7a3ht
-      9ma+t8/KxPdB/KZZGfmbC0D0gkkbwgP0F+n3ChFT0V+Vb5lw49stTStFXSevvtZG
-      Efp2zuhSJaCIMDAKEpolAoVwxeZv3CeumIco7ZgWvLLpWyDemdkK+JuX2mTK6mlZ
-      TlFVpAcjTI2SULGw8ulWaU4uCjxZWlSl42NEeJ6wUM62Kd2kLJRACdg+VWVET1KQ
-      4fOuzIy03cvoJAe3gB32e7wxS56xRkGNiFJMOg9BdljEloKQei2XKSjvk2VfqRLk
-      v+u5AQ0EVufSIwEIAMe8wWmTbl7s2i76FLq+tE9klRQ8pVCjpizoHFYntVIjiHUL
-      sHyXb44y7Zz54WINSEXB9IKZ7VgcuudnJ3dgmcPZ8KFThGdaUKY+VIl8MgQF8TlV
-      LvVCM0H/a1qiPiUJ9yIPe0MGJuGLOABmuLe1w/6ZP2hr2NZM1SIMsTQlyDZXhw9o
-      Gx1yBtF3ZLdtNzHB/5Wkf62vdWuEIPvTc4eQ6uMjeTLl+mz8UJHB0PDnsOLoQmC9
-      +s4yKur7z3/JCW58phmkDRf6ceVBPxDPyXXsj67eSthe/m3C5WWL9fUjxi+GM0/g
-      u9rxLB/zIzX8XSq8C05iB7CQ42bQe3tp11hciaEAEQEAAYkBJQQYAQIADwUCVufS
-      IwIbDAUJA8JnAAAKCRCePlPxnH3kYBKDB/9yS+8arxK1Na8AF5ja7+imVWv2iz6R
-      Q85XIHYqeh5ev6K3UQLywR/SxESviJLKwwg/wRj8o5je4CBWnSU2M6VHyBEOP2WD
-      SWEwEjBPAuNNFLxqx17xAYjIgMVBctCxsmz5B8EughfardlBbwxAhH/BCjpcSacH
-      r1n4uNh+MmQ8MD9fZ2Uu6JnkOcj0mAzBC52qf9wyeqLR9EQRnkIt3XoI6UvCuCv3
-      YZHbdsKHllr/0OjDh1sj3L6lI7Cw6klyIs5SYCaKYDBipRXTcypAPAEoubuViSD+
-      +rbSfLsUWdBWdzpdIyYbsyfb6IIBLxniXhuO9nqxoSa8YuIHYeVY/3YT
-      =3Sjb
-      -----END PGP PUBLIC KEY BLOCK-----
-
+    id: 9E3E53F19C7DE460
+    keyserver: "{{ aptly_keyserver }}"
 
 - name: Install necessary packages
   apt: name={{ item }} state=present update_cache=yes
@@ -80,23 +50,24 @@
   shell: gpg --allow-secret-key-import --import /tmp/{{ aptly_secret_key_file }}
   when: aptly_secret_key_id is defined and key_present.rc != 0
 
--
-    name: Remove secret key from remote host
-    file: path="/tmp/{{ aptly_secret_key_file }}" state=absent
-    when: aptly_secret_key_id is defined
--
-    name: Create repositories
-    shell: >
-        (aptly repo list -raw | grep -q "{{ item.name }}" )
-        || (
-            aptly repo create \
-                --comment "{{ item.comment|default('\"\"') }}" \
-                --distribution "{{ item.distribution|default('main') }}" \
-                --component "{{ item.component|default('main') }}" \
-                "{{ item.name }}"
-        )
-    with_items: aptly_repositories
-    when: aptly_repositories is defined
+- name: Remove secret key from remote host
+  file:
+   path: "/tmp/{{ aptly_secret_key_file }}"
+   state: absent
+  when: aptly_secret_key_id is defined
+
+- name: Create repositories
+  shell: >
+      (aptly repo list -raw | grep -q "{{ item.name }}" )
+      || (
+          aptly repo create \
+              --comment "{{ item.comment|default('\"\"') }}" \
+              --distribution "{{ item.distribution|default('main') }}" \
+              --component "{{ item.component|default('main') }}" \
+              "{{ item.name }}"
+      )
+  with_items: "{{ aptly_repositories }}"
+  when: aptly_repositories is defined
 
 - name: Ensure import dir is present
   file:
@@ -106,7 +77,7 @@
 
 - name: Import packages to repository
   command: aptly repo add {{ item.name }} {{ aptly_import_dir }}
-  with_items: aptly_repositories
+  with_items: "{{ aptly_repositories }}"
   when: aptly_repositories is defined
 
 -
@@ -118,12 +89,12 @@
             --architectures "{{ item.architectures|default('amd64,i386') }}" \
             "{{ item.name }}" \
             "{{ item.prefix|default(item.name) }}"
-    with_items: aptly_repositories
+    with_items: "{{ aptly_repositories }}"
     when: aptly_repositories is defined
 
 - name: Update published repos
   command: aptly publish update {{ item.distribution }} {{ item.name }}
-  with_items: aptly_repositories
+  with_items: "{{ aptly_repositories }}"
   when: aptly_repositories is defined
 
 -
@@ -159,18 +130,18 @@
 
 - name: Import keys of mirrored repos
   command: gpg --no-default-keyring --keyring trustedkeys.gpg --keyserver {{ aptly_keyserver }} --recv-keys {{ item }}
-  with_items: aptly_mirror_keys 
+  with_items: "{{ aptly_mirror_keys }}"
   when: aptly_mirrors is defined
 
 - name: Create mirrors
   command: "aptly mirror create -architectures=amd64 -filter='{{ aptly_filter | join (\" | \") }}' {{ item.name }} {{ item.url }} {{ item.component }}"
-  with_items: aptly_mirrors
+  with_items: "{{ aptly_mirrors }}"
   when: aptly_mirrors is defined
   failed_when: False
 
 - name: Update mirrors
   command: aptly mirror update {{ item.name }}
-  with_items: aptly_mirrors
+  with_items: "{{ aptly_mirrors }}"
   when: aptly_mirrors is defined
 
 - name: Copy daily cronjob
