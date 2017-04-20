@@ -8,7 +8,7 @@ Aptly is a brilliant software for creating both your own Debian repositories and
 Notes
 =====
 
-1. This role is tested on Ubuntu 14.04 (Trusty) and aptly 0.9.5 only (the latest as of 18 Mar 2015). Patches for other distributions and versions are welcome.
+1. This role is tested on Ubuntu 14.04 (Trusty) and aptly 1.0.1 only (the latest as of  Apr 2017). Patches for other distributions and versions are welcome.
 1. This role configures aptly as your own repository server only. If you need a mirror, you can use this role to install aptly, but you still need to configure mirrors by yourself.
 
 
